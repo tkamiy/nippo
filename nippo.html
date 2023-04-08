@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>日報メモ出力アプリ</title>
+	<style>
+		body {
+			font-family: Arial, sans-serif;
+			margin: 0;
+			padding: 0;
+		}
+
+		.container {
+			max-width: 720px;
+			margin: 0 auto;
+			padding: 24px;
+		}
+
+		/* h1 {
+			font-size: 28px;
+			font-weight: bold;
+			margin-top: 0;
+		} */
+
+		label {
+			display: block;
+			font-size: 16px;
+			font-weight: bold;
+			margin-top: 16px;
+			margin-bottom: 8px;
+		}
+
+		input[type=text], select {
+			font-size: 16px;
+			padding: 12px;
+			border-radius: 8px;
+			border: none;
+			margin-top: 8px;
+			margin-bottom: 16px;
+			width: 100%;
+			box-sizing: border-box;
+			background-color: #f2f2f2;
+			color: #333;
+			outline: none;
+		}
+
+		select {
+			background-color: #fff;
+		}
+
+		button {
+			font-size: 16px;
+			font-weight: bold;
+			padding: 12px 24px;
+			border-radius: 8px;
+			border: none;
+			background-color: #167bef;
+			color: #fff;
+			cursor: pointer;
+			transition: background-color 0.2s ease;
+		}
+
+		button:hover {
+			background-color: #3aa3ee;
+		}
+
+		.red {
+			background-color: #f44336;
+		}
+
+		.red:hover {
+			background-color: #d32f2f;
+		}
+
+		.task-set {
+			margin-bottom: 16px;
+			border: 1px solid #ccc;
+			border-radius: 8px;
+			padding: 16px;
+			position: relative;
+		}
+
+		.delete-button {
+			position: absolute;
+			top: 8px;
+			right: 8px;
+			cursor: pointer;
+		}
+
+		.textarea {
+			font-size: 16px;
+			padding: 12px;
+			border-radius: 8px;
+			border: none;
+			margin-top: 8px;
+			margin-bottom: 16px;
+			width: 100%;
+			box-sizing: border-box;
+			background-color: #f2f2f2;
+			color: #333;
+			outline: none;
+			height: 100px;
+			resize: vertical;
+		}
+
+		.textarea1 {
+			font-size: 16px;
+			padding: 12px;
+			border-radius: 8px;
+			border: none;
+			margin-top: 8px;
+			margin-bottom: 16px;
+			width: 100%;
+			box-sizing: border-box;
+			background-color: #f2f2f2;
+			color: #333;
+			outline: none;
+			height: 40px;
+			resize: vertical;
+		}
+
+		@media only screen and (max-width: 768px) {
+			.container {
+				max-width: 100%;
+				padding: 16px;
+			}
+
+			/* h1 {
+				font-size: 24px;
+			} */
+		}
+	</style>
+</head>
+<body>
+	<div class="container">
+		<!-- <h1>日報メモ</h1> -->
+		<form>
+			<label for="todays-goal">◇今日の目標</label>
+			<input type="text" name="todays-goal" id="todays-goal">
+
+			<label for="date">◇作成した日付</label>
+			<input type="date" name="date" id="date" value="?php echo date('Y-m-d'); ?>">
+
+      <label for="notes">◇メモ欄</label>
+			<textarea name="notes" id="notes" class="textarea"></textarea>
+
+<hr>
+
+			<label for="task-area">◇項目表</label>
+			<div id="task-area">
+				<!-- 項目セットは、ここに動的に追加されます -->
+			</div>
+
+			<button type="button" id="add-task-button">追加</button>
+
+<hr>
+
+			<label for="people">◇今日関わった人</label>
+			<textarea name="people" id="people" class="textarea1"></textarea>
+
+
+
+			<label for="good-things">◇良かったこと</label>
+			<textarea name="good-things" id="good-things" class="textarea"></textarea>
+
+			<label for="bad-things">◇悪かったこと</label>
+			<textarea name="bad-things" id="bad-things" class="textarea"></textarea>
+
+			<label for="communication">◇連絡・報告</label>
+			<textarea name="communication" id="communication" class="textarea"></textarea>
+
+			<button type="submit" id="submit-button">出力</button>
+		</form>
+	</div>
+
+	<script>
+		// 日付からファイル名を生成する
+		function getFileName(date) {
+			let year = date.getFullYear();
+			let month = date.getMonth() + 1;
+			let day = date.getDate();
+
+			if (month < 10) {
+				month = '0' + month;
+			}
+
+			if (day < 10) {
+				day = '0' + day;
+			}
+
+			return year + '_' + month + '_' + day + ' Daily Report.txt';
+		}
+
+		// 項目セットを削除
+		function removeTaskSet() {
+			let taskSet = event.target.parentElement;
+			taskSet.parentElement.removeChild(taskSet);
+		}
+
+		// 項目セットを追加
+		function addTaskSet() {
+			let taskArea = document.getElementById('task-area');
+
+			// 要素を作成
+			let taskSet = document.createElement('div');
+			taskSet.className = 'task-set';
+
+			let deleteButton = document.createElement('button');
+			deleteButton.className = 'delete-button red';
+			deleteButton.innerHTML = '削除';
+
+			let taskName = document.createElement('input');
+			taskName.type = 'text';
+			// taskName.placeholder = '項目名を入力';
+
+			let hours = ['0.25', '0.50', '0.75', '1.00'];
+			let hoursSelect = document.createElement('select');
+			for (let i = 0; i < hours.length; i++) {
+				let option = document.createElement('option');
+				option.value = hours[i];
+				option.text = hours[i] + 'h';
+				hoursSelect.appendChild(option);
+			}
+
+			let timeSelect = document.createElement('input');
+			timeSelect.type = 'time';
+			timeSelect.min = '00:00';
+			timeSelect.max = '23:59';
+			timeSelect.step = '900'; // 15 minutes interval
+
+			// 項目セットの構築
+			taskSet.appendChild(deleteButton);
+			taskSet.appendChild(taskName);
+			taskSet.appendChild(hoursSelect);
+			taskSet.appendChild(timeSelect);
+
+			// 削除ボタンにイベントリスナーを付ける
+			deleteButton.addEventListener('click', removeTaskSet);
+
+			// 項目セットを項目エリアに追加する
+			taskArea.appendChild(taskSet);
+		}
+
+		// フォームを出力
+		function submitForm(event) {
+			event.preventDefault();
+
+			// フォームの入力を取得する
+			let projectName = document.getElementById('todays-goal').value.trim();
+			let date = document.getElementById('date').value.trim();
+			let taskSets = document.getElementsByClassName('task-set');
+			let people = document.getElementById('people').value.trim();
+			let notes = document.getElementById('notes').value.trim();
+			let goodThings = document.getElementById('good-things').value.trim();
+			let badThings = document.getElementById('bad-things').value.trim();
+			let communication = document.getElementById('communication').value.trim();
+
+			// フォーム入力の有効化
+			if (!projectName || !date || taskSets.length === 0) {
+				// alert('全ての入力部分を埋めてください。');
+				return;
+			}
+
+			// 日報を構築
+			let content = '';
+
+      content += people + '\n\n' + 'いつもお世話になっております。〇〇です。' + '\n\n' + '本日の作業日報をお送りいたします。' + '\n\n';
+
+			// content += '今日の目標: ' + projectName + '\n\n';
+			// content += '作成日: ' + date + '\n';
+
+			content += '==================================================' + '\n' + '[備考][予定工数][実行工数]' + '\n' + '==================================================' + '\n';
+			for (let i = 0; i < taskSets.length; i++) {
+				let taskName = taskSets[i].querySelector('input[type=text]').value.trim();
+				let hours = taskSets[i].querySelector('select').value.trim();
+				let time = taskSets[i].querySelector('input[type=time]').value.trim();
+
+				if (!taskName || !hours || !time) {
+					// alert('項目表の全てを入力してください');
+					return;
+				}
+
+				content += '- ' + taskName + hours + 'h' + '\n';
+			}
+
+      content += '\n';
+
+      content += '==================================================' + '\n' + '小計[7.00h][7.00h]' + '\n' + '==================================================' + '\n\n';
+
+      content += '==================================================' + '\n' + '合計[8.00h][8.00h]' + '\n' + '==================================================' + '\n';
+
+			content += '\n';
+			// content += '◇今日関わった人:\n' + people + '\n\n';
+			content += '【メモ】\n' + notes + '\n\n';
+			content += '【良かったこと】\n' + goodThings + '\n\n';
+			content += '【悪かったこと】\n' + badThings + '\n\n';
+			content += '【報告・連絡】\n' + communication + '\n\n';
+
+      content += '以上です。' + '\n' + 'よろしくお願い致します。';
+
+			// 生成してファイルをダウンロード
+			let file = new Blob([content], {type: 'text/plain'});
+			let filename = getFileName(new Date(date));
+			let link = document.createElement('a');
+			link.href = window.URL.createObjectURL(file);
+			link.download = filename;
+			link.click();
+
+			// alert('出力が完了しました。');
+    }
+
+		// イベントリスナーを付ける
+		document.getElementById('add-task-button').addEventListener('click', addTaskSet);
+		document.getElementById('submit-button').addEventListener('click', submitForm);
+	</script>
+</body>
+</html>
